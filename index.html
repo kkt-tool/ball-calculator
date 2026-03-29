@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KKT NC旋盤球面加工 座標計算ツール</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #222536;
+    --border: #2e3347;
+    --accent: #4a9eff;
+    --accent2: #00e5a0;
+    --accent3: #ff6b6b;
+    --text: #e8eaf2;
+    --text-dim: #7b82a0;
+    --text-muted: #4a5070;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Noto Sans JP', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+  }
+
+  /* grid bg */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(74,158,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(74,158,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .container { max-width: 820px; margin: 0 auto; position: relative; }
+
+  /* header */
+  .header {
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .header-badge {
+    background: var(--accent);
+    color: #000;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 3px;
+    letter-spacing: 1px;
+  }
+  h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+  .subtitle {
+    font-size: 13px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+  }
+
+  /* layout */
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 620px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  /* card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .card-title {
+    font-size: 11px;
+    font-family: var(--mono);
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title::before {
+    content: '';
+    width: 3px;
+    height: 14px;
+    background: var(--accent);
+    border-radius: 2px;
+    display: block;
+  }
+
+  /* form */
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+
+  label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 5px;
+    font-family: var(--mono);
+  }
+  label span {
+    color: var(--text-muted);
+    font-size: 11px;
+    margin-left: 4px;
+  }
+
+  input[type=number], select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    -moz-appearance: textfield;
+  }
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+  input[type=number]:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(74,158,255,0.12);
+  }
+  select option { background: var(--surface2); }
+
+  /* tolerance row */
+  .tol-row {
+    display: grid;
+    grid-template-columns: 1fr 80px 80px;
+    gap: 8px;
+    align-items: end;
+  }
+  .tol-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    text-align: center;
+    margin-bottom: 5px;
+  }
+  .center-val {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 9px 12px;
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--accent2);
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  /* virtual tip diagram */
+  .tip-diagram {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-top: 8px;
+  }
+  .tip-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 36px);
+    grid-template-rows: repeat(3, 36px);
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .tip-cell {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.12s;
+    user-select: none;
+  }
+  .tip-cell:hover { border-color: var(--accent); color: var(--accent); }
+  .tip-cell.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+    font-weight: 700;
+  }
+  .tip-cell.center {
+    background: transparent;
+    border-color: transparent;
+    color: var(--text-muted);
+    cursor: default;
+    font-size: 10px;
+  }
+  .tip-info {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    font-family: var(--mono);
+  }
+  .tip-info strong { color: var(--text); display: block; margin-bottom: 4px; }
+
+  /* calc button */
+  .calc-btn {
+    width: 100%;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 700;
+    padding: 13px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: all 0.15s;
+    margin-top: 4px;
+  }
+  .calc-btn:hover { background: #6bb3ff; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(74,158,255,0.3); }
+  .calc-btn:active { transform: translateY(0); }
+
+  /* result */
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    display: none;
+  }
+  .result-card.visible { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform: translateY(0); } }
+
+  .result-section { margin-bottom: 20px; }
+  .result-section:last-child { margin-bottom: 0; }
+
+  .result-label {
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .coord-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .coord-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+  }
+  .coord-name {
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .coord-val {
+    font-size: 18px;
+    font-family: var(--mono);
+    font-weight: 600;
+    color: var(--accent2);
+  }
+  .coord-val.r-val { color: var(--accent); }
+
+  /* tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+  .tab {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .tab:hover { border-color: var(--accent); color: var(--accent); }
+  .tab.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
+
+  /* gcode block */
+  .gcode-block {
+    background: #0a0c14;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.8;
+    position: relative;
+    display: none;
+  }
+  .gcode-block.visible { display: block; }
+  .gcode-line { display: flex; gap: 16px; }
+  .gcode-code { color: #e8eaf2; white-space: nowrap; }
+  .gcode-comment { color: var(--text-muted); font-size: 12px; }
+  .gcode-highlight .gcode-code { color: var(--accent2); font-weight: 600; }
+
+  .copy-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .copy-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+  .copy-btn.copied { border-color: var(--accent2); color: var(--accent2); }
+
+  /* calc steps */
+  .steps {
+    background: #0a0c14;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 2;
+    color: var(--text-dim);
+    display: none;
+  }
+  .steps.visible { display: block; }
+  .steps .step-val { color: var(--accent2); }
+  .steps .step-label { color: var(--text-muted); }
+
+  /* error */
+  .error-msg {
+    background: rgba(255,107,107,0.1);
+    border: 1px solid var(--accent3);
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: var(--accent3);
+    font-family: var(--mono);
+    font-size: 12px;
+    display: none;
+  }
+  .error-msg.visible { display: block; }
+
+  /* divider */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 16px 0;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="header-top">
+      <span class="header-badge">NC LATHE</span>
+      <h1>KKT NC旋盤球面加工 座標計算ツール</h1>
+    </div>
+    <div class="subtitle">ボールスタッド球面加工 / G2座標・Gコード自動生成</div>
+  </div>
+
+  <!-- 端面直径チェック -->
+  <div class="card" style="margin-top:16px;">
+    <div class="card-title">端面直径チェック</div>
+    <div style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+      <div class="field" style="flex:1; min-width:120px; margin-bottom:0;">
+        <label>球の直径 sΦ <span>mm</span></label>
+        <input type="number" id="chkDiam" value="28" step="0.001" min="0" placeholder="例: 28.0">
+      </div>
+      <div class="field" style="flex:1; min-width:120px; margin-bottom:0;">
+        <label>球中心から端面までのZ距離 <span>mm</span></label>
+        <input type="number" id="chkZ" value="13" step="0.001" min="0" placeholder="例: 13.0">
+      </div>
+      <div style="flex:1.5; min-width:160px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px;">
+        <div style="font-family:var(--mono); font-size:11px; color:var(--text-muted); margin-bottom:4px;">端面の直径 Φ</div>
+        <div id="chkResult" style="font-family:var(--mono); font-size:22px; font-weight:700; color:var(--accent); letter-spacing:0.04em;">—</div>
+        <div id="chkFormula" style="font-family:var(--mono); font-size:10px; color:var(--text-muted); margin-top:3px;"></div>
+      </div>
+      <div style="flex:0 0 auto; margin-bottom:0;">
+        <button onclick="reflectChkValues()" style="
+          background:var(--accent); color:#fff; border:none; border-radius:8px;
+          padding:10px 18px; font-family:var(--mono); font-size:12px; font-weight:700;
+          cursor:pointer; white-space:nowrap; letter-spacing:0.03em;">
+          ↓ 計算に反映
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="layout">
+
+    <!-- 左カラム: 球・工具 -->
+    <div class="card">
+      <div class="card-title">球・工具 パラメータ</div>
+
+      <!-- 球の直径 -->
+      <div class="field">
+        <label>球の直径 sΦ <span>mm</span></label>
+        <div class="tol-row">
+          <div>
+            <div class="tol-label">公称径</div>
+            <input type="number" id="diam" value="28" step="0.001" min="0">
+          </div>
+          <div>
+            <div class="tol-label">上偏差</div>
+            <input type="number" id="tolPlus" value="0.03" step="0.001" min="-1" max="1">
+          </div>
+          <div>
+            <div class="tol-label">下偏差</div>
+            <input type="number" id="tolMinus" value="-0.03" step="0.001" min="-1" max="1">
+          </div>
+        </div>
+        <div style="margin-top:8px; display:flex; align-items:center; gap:10px;">
+          <div class="tol-label" style="margin-bottom:0;">→ 計算値</div>
+          <div class="center-val" id="centerVal">28.000 mm</div>
+        </div>
+      </div>
+
+      <!-- 球中心Z距離 -->
+      <div class="field">
+        <label>端面から球中心までのZ距離 <span>mm（空欄 = 球半径を自動使用）</span></label>
+        <input type="number" id="ballCenterZ" value="" step="0.001" min="0" placeholder="例: 15.6　空欄なら球半径を自動使用">
+        <div style="margin-top:6px; display:flex; align-items:center; gap:10px;">
+          <div class="tol-label" style="margin-bottom:0;">→ 使用値</div>
+          <div class="center-val" id="centerZVal">— mm</div>
+        </div>
+      </div>
+      <!-- hidden radio for JS compatibility -->
+      <input type="radio" name="originType" id="originFaceFront" value="face_front" checked style="display:none;">
+
+      <!-- ノーズR -->
+      <div class="field">
+        <label>ノーズR <span>mm（チップ刃先の丸み半径）</span></label>
+        <select id="noseR">
+          <option value="0.2">R0.2</option>
+          <option value="0.4" selected>R0.4</option>
+          <option value="0.8">R0.8</option>
+          <option value="1.2">R1.2</option>
+          <option value="custom">カスタム入力</option>
+        </select>
+        <input type="number" id="noseRCustom" placeholder="例: 0.6" step="0.1" min="0" max="5"
+          style="margin-top:6px; display:none;">
+      </div>
+    </div>
+
+    <!-- 右カラム: 加工条件 -->
+    <div class="card">
+      <div class="card-title">加工条件</div>
+
+      <!-- 入口Z延長量 -->
+      <div class="field">
+        <label>入口 Z延長量 <span>mm（Z0より外側へ）</span></label>
+        <input type="number" id="zEntry" value="0.3" step="0.1" min="0" max="10">
+      </div>
+
+      <!-- 出口X直径 -->
+      <div class="field">
+        <label>出口 X直径 <span>mm（仮想刃先3番の位置）</span></label>
+        <input type="number" id="xExit" value="18" step="0.1" min="0">
+        <div id="interferenceWarn" style="margin-top:6px; display:none; border-radius:6px; padding:7px 10px; font-family:var(--mono); font-size:11px; line-height:1.7;"></div>
+      </div>
+
+      <!-- 送り速度 -->
+      <div class="field">
+        <label>切削送り速度 F <span>mm/rev</span></label>
+        <input type="number" id="feed" value="0.08" step="0.01" min="0.01" max="1">
+      </div>
+
+      <!-- 仮想刃先番号 -->
+      <div class="field">
+        <label>仮想刃先番号</label>
+        <div class="tip-diagram">
+          <div class="tip-grid" id="tipGrid">
+            <!-- 3x3 grid: positions 2,6,1 / 7,0/9,5 / 3,8,4 -->
+          </div>
+          <div class="tip-info">
+            <strong id="tipName">3番 — 左下</strong>
+            <span id="tipDesc">外径加工・球面加工（定番）</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 計算ボタン -->
+  <button class="calc-btn" onclick="calculate()">▶ 座標計算・Gコード生成</button>
+
+  <!-- エラー -->
+  <div class="error-msg" id="errorMsg" style="margin-top:12px;"></div>
+
+  <!-- 結果 -->
+  <div class="result-card" id="resultCard" style="margin-top:16px;">
+    <div class="card-title">計算結果</div>
+
+    <!-- 座標サマリー -->
+    <div class="result-section">
+      <div class="result-label">座標値</div>
+      <div class="coord-grid">
+        <div class="coord-box">
+          <div class="coord-name">入口 X（直径）</div>
+          <div class="coord-val" id="resXEntry">—</div>
+        </div>
+        <div class="coord-box">
+          <div class="coord-name">入口 Z</div>
+          <div class="coord-val" id="resZEntry">—</div>
+        </div>
+        <div class="coord-box">
+          <div class="coord-name">出口 X（直径）</div>
+          <div class="coord-val" id="resXExit">—</div>
+        </div>
+        <div class="coord-box">
+          <div class="coord-name">出口 Z</div>
+          <div class="coord-val" id="resZExit">—</div>
+        </div>
+        <div class="coord-box">
+          <div class="coord-name">G2 R値</div>
+          <div class="coord-val r-val" id="resR">—</div>
+        </div>
+        <div class="coord-box">
+          <div class="coord-name">使用半径</div>
+          <div class="coord-val r-val" id="resRadius">—</div>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Gコード出力 -->
+    <div class="result-section">
+      <div class="result-label">Gコード出力</div>
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('line')">G2の1行のみ</div>
+        <div class="tab" onclick="switchTab('full')">プログラム全体</div>
+        <div class="tab" onclick="switchTab('steps')">計算過程</div>
+      </div>
+
+      <!-- 1行 -->
+      <div class="gcode-block visible" id="tabLine">
+        <button class="copy-btn" onclick="copyCode('tabLine')">COPY</button>
+        <div id="gcodeLineContent"></div>
+      </div>
+
+      <!-- 全体 -->
+      <div class="gcode-block" id="tabFull">
+        <button class="copy-btn" onclick="copyCode('tabFull')">COPY</button>
+        <div id="gcodeFullContent"></div>
+      </div>
+
+      <!-- 計算過程 -->
+      <div class="steps" id="tabSteps"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ==========================================
+     荒球面加工 座標計算
+     仕上げの加工原点を基準に、仕上げ代分大きい球径で計算
+========================================== -->
+<div class="container" style="margin-top:32px;">
+  <div class="card" style="border-color: var(--accent2); border-width:1.5px;">
+    <div class="card-title" style="color:var(--accent2);">荒球面加工 座標計算</div>
+    <div style="font-family:var(--mono); font-size:11px; color:var(--text-dim); margin-bottom:16px;">
+      仕上げの加工原点・公差中心値を基準に、仕上げ代分大きい球径で荒加工座標を計算します
+    </div>
+
+    <div class="layout">
+      <!-- 左: 荒加工パラメータ -->
+      <div>
+        <div class="card-title" style="font-size:12px; margin-bottom:12px;">球・工具 パラメータ（荒）</div>
+
+        <!-- 取り代（片側）→ 荒加工球径を自動計算 -->
+        <div class="field">
+          <label>取り代（片側） <span>mm</span></label>
+          <input type="number" id="roughAllowance" value="" step="0.05" min="0" max="5" placeholder="例: 0.15" disabled>
+          <div style="margin-top:6px; display:flex; align-items:center; gap:10px;">
+            <div class="tol-label" style="margin-bottom:0;">→ 荒加工球径</div>
+            <div class="center-val" id="roughDiamVal">— mm</div>
+          </div>
+        </div>
+
+        <!-- 端面シフト量（荒ballCenterZ = 仕上げballCenterZ + シフト量） -->
+        <div class="field">
+          <label>加工原点からのZシフト量 <span>mm（仕上げ端面よりZ方向）</span></label>
+          <input type="number" id="roughZShift" value="" step="0.05" min="0" max="10" placeholder="例: 0.2" disabled>
+          <div style="margin-top:6px; display:flex; align-items:center; gap:10px;">
+            <div class="tol-label" style="margin-bottom:0;">→ 荒 ballCenterZ</div>
+            <div class="center-val" id="roughBallCenterZVal">— mm</div>
+          </div>
+        </div>
+
+        <!-- ノーズR（荒） -->
+        <div class="field">
+          <label>ノーズR（荒） <span>mm</span></label>
+          <select id="roughNoseR">
+            <option value="0.2">R0.2</option>
+            <option value="0.4">R0.4</option>
+            <option value="0.8">R0.8</option>
+            <option value="1.2" selected>R1.2</option>
+            <option value="custom">カスタム入力</option>
+          </select>
+          <input type="number" id="roughNoseRCustom" placeholder="例: 0.6" step="0.1" min="0" max="5"
+            style="margin-top:6px; display:none;">
+        </div>
+
+        <!-- 仮想刃先番号（荒） -->
+        <div class="field">
+          <label>仮想刃先番号（荒）</label>
+          <div class="tip-grid" id="roughTipGrid"></div>
+          <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
+            <span class="center-val" id="roughTipName" style="font-size:14px;">3番</span>
+            <span style="font-family:var(--mono); font-size:11px; color:var(--text-dim);" id="roughTipDesc">外径加工・球面加工（定番）</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右: 荒加工条件 -->
+      <div>
+        <div class="card-title" style="font-size:12px; margin-bottom:12px;">加工条件（荒）</div>
+
+        <!-- 入口Z延長量（荒） -->
+        <div class="field">
+          <label>入口 Z延長量（荒） <span>mm</span></label>
+          <input type="number" id="roughZEntry" value="" step="0.1" min="0" max="10" placeholder="例: 0.2" disabled>
+        </div>
+
+        <!-- 出口X直径（荒） -->
+        <div class="field">
+          <label>出口 X直径（荒） <span>mm（仮想刃先3番の位置）</span></label>
+          <input type="number" id="roughXExit" value="" step="0.1" min="0" placeholder="例: 18" disabled>
+        </div>
+
+        <!-- 切削送り速度（荒） -->
+        <div class="field">
+          <label>切削送り速度 F（荒） <span>mm/rev</span></label>
+          <input type="number" id="roughFeed" value="" step="0.01" min="0.01" max="1" placeholder="例: 0.15" disabled>
+        </div>
+      </div>
+    </div>
+
+    <!-- 計算ボタン（荒） -->
+    <button class="calc-btn" id="roughCalcBtn" onclick="calculateRough()" style="background:var(--accent2); margin-top:8px; opacity:0.4; cursor:not-allowed;" disabled>
+      ▶ 荒加工 座標計算・Gコード生成
+    </button>
+
+    <!-- エラー（荒） -->
+    <div class="error-msg" id="roughErrorMsg" style="margin-top:12px;"></div>
+
+    <!-- 結果（荒） -->
+    <div class="result-card" id="roughResultCard" style="margin-top:16px;">
+      <div class="card-title" style="color:var(--accent2);">荒加工 計算結果</div>
+      <div class="result-section">
+        <div class="result-label">座標値</div>
+        <div class="coord-grid">
+          <div class="coord-box">
+            <div class="coord-name">入口 X（直径）</div>
+            <div class="coord-val" id="roughResXEntry">—</div>
+          </div>
+          <div class="coord-box">
+            <div class="coord-name">入口 Z</div>
+            <div class="coord-val" id="roughResZEntry">—</div>
+          </div>
+          <div class="coord-box">
+            <div class="coord-name">出口 X（直径）</div>
+            <div class="coord-val" id="roughResXExit">—</div>
+          </div>
+          <div class="coord-box">
+            <div class="coord-name">出口 Z</div>
+            <div class="coord-val" id="roughResZExit">—</div>
+          </div>
+          <div class="coord-box">
+            <div class="coord-name">G2 R値</div>
+            <div class="coord-val r-val" id="roughResR">—</div>
+          </div>
+          <div class="coord-box">
+            <div class="coord-name">荒加工球径</div>
+            <div class="coord-val r-val" id="roughResRadius">—</div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <div class="result-section">
+        <div class="result-label">Gコード出力（荒）</div>
+        <div class="tabs">
+          <div class="tab active" onclick="switchRoughTab('line')">G2の1行のみ</div>
+          <div class="tab" onclick="switchRoughTab('full')">プログラム全体</div>
+        </div>
+        <div class="gcode-block visible" id="roughTabLine">
+          <button class="copy-btn" onclick="copyCode('roughTabLine')">COPY</button>
+          <div id="roughGcodeLineContent"></div>
+        </div>
+        <div class="gcode-block" id="roughTabFull">
+          <button class="copy-btn" onclick="copyCode('roughTabFull')">COPY</button>
+          <div id="roughGcodeFullContent"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+// 仮想刃先番号グリッド定義（3x3）
+const TIP_LAYOUT = [
+  { num: '2', row: 0, col: 0 },
+  { num: '6', row: 0, col: 1 },
+  { num: '1', row: 0, col: 2 },
+  { num: '7', row: 1, col: 0 },
+  { num: '0/9', row: 1, col: 1, center: true },
+  { num: '5', row: 1, col: 2 },
+  { num: '3', row: 2, col: 0 },
+  { num: '8', row: 2, col: 1 },
+  { num: '4', row: 2, col: 2 },
+];
+
+const TIP_DESC = {
+  '1': '右上 — テーパ（右上）',
+  '2': '上 — 端面加工（中心方向送り）',
+  '3': '左下 — 外径・球面加工（定番）',
+  '4': '右下 — テーパ（右下）',
+  '5': '右 — 外径（右向き）',
+  '6': '上右 — テーパ（上右）',
+  '7': '左 — 内径・溝',
+  '8': '下 — 端面（逆方向）',
+  '9': '中心（0番と同じ）',
+  '0/9': '0/9番 — 中心（参照用）',
+};
+
+let selectedTip = '3';
+
+function buildTipGrid() {
+  const grid = document.getElementById('tipGrid');
+  grid.innerHTML = '';
+  TIP_LAYOUT.forEach(cell => {
+    const div = document.createElement('div');
+    div.className = 'tip-cell' + (cell.center ? ' center' : '') + (cell.num === selectedTip ? ' active' : '');
+    div.textContent = cell.num;
+    if (!cell.center) {
+      div.onclick = () => selectTip(cell.num);
+    }
+    grid.appendChild(div);
+  });
+}
+
+function selectTip(num) {
+  selectedTip = num;
+  buildTipGrid();
+  document.getElementById('tipName').textContent = num + '番';
+  document.getElementById('tipDesc').textContent = TIP_DESC[num] || '';
+}
+
+buildTipGrid();
+
+// 公差中心値の自動計算
+function updateCenter() {
+  const d = parseFloat(document.getElementById('diam').value) || 0;
+  const p = parseFloat(document.getElementById('tolPlus').value) || 0;
+  const m = parseFloat(document.getElementById('tolMinus').value) || 0;
+  const center = d + (p + m) / 2;
+  document.getElementById('centerVal').textContent = center.toFixed(3) + ' mm';
+  updateCenterZ();
+}
+function updateCenterZ() {
+  const d = parseFloat(document.getElementById('diam').value) || 0;
+  const p = parseFloat(document.getElementById('tolPlus').value) || 0;
+  const m = parseFloat(document.getElementById('tolMinus').value) || 0;
+  const radius = (d + (p + m) / 2) / 2;
+  const czInput = document.getElementById('ballCenterZ').value;
+  const val = parseFloat(czInput);
+  document.getElementById('centerZVal').textContent =
+    (czInput === '' || isNaN(val))
+      ? `${radius.toFixed(3)} mm（球半径を自動使用）`
+      : `${val.toFixed(3)} mm`;
+}
+function getOriginType() {
+  return 'face_front';
+}
+
+['diam','tolPlus','tolMinus'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateCenter);
+});
+document.getElementById('ballCenterZ').addEventListener('input', updateCenterZ);
+updateCenter();
+
+// カスタムノーズR
+document.getElementById('noseR').addEventListener('change', function() {
+  document.getElementById('noseRCustom').style.display = this.value === 'custom' ? 'block' : 'none';
+});
+
+// 端面チェックの値を計算欄に反映
+function reflectChkValues() {
+  const d = document.getElementById('chkDiam').value;
+  const z = document.getElementById('chkZ').value;
+  if (d) {
+    document.getElementById('diam').value = d;
+    updateCenter();
+  }
+  if (z) {
+    document.getElementById('ballCenterZ').value = z;
+    updateCenterZ();
+  }
+  updateInterferenceWarn();
+}
+
+// 端面直径チェック
+function updateChk() {
+  const d = parseFloat(document.getElementById('chkDiam').value);
+  const z = parseFloat(document.getElementById('chkZ').value);
+  const res = document.getElementById('chkResult');
+  const fml = document.getElementById('chkFormula');
+  if (isNaN(d) || d <= 0 || isNaN(z) || z < 0) {
+    res.textContent = '—'; fml.textContent = ''; return;
+  }
+  const r = d / 2;
+  const inner = r * r - z * z;
+  if (inner < 0) {
+    res.textContent = 'エラー'; fml.textContent = 'Z距離が球半径より大きいです'; return;
+  }
+  const faceDiam = 2 * Math.sqrt(inner);
+  res.textContent = 'Φ ' + faceDiam.toFixed(3) + ' mm';
+  fml.textContent = `√(${r.toFixed(3)}² − ${z.toFixed(3)}²) × 2`;
+}
+['chkDiam','chkZ'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateChk);
+});
+updateChk();
+
+// チップ干渉チェック
+const SIN17 = Math.sin(17.5 * Math.PI / 180);
+const COS17 = Math.cos(17.5 * Math.PI / 180);
+
+function updateInterferenceWarn() {
+  const warn = document.getElementById('interferenceWarn');
+  const diam = parseFloat(document.getElementById('diam').value);
+  const tolP = parseFloat(document.getElementById('tolPlus').value) || 0;
+  const tolM = parseFloat(document.getElementById('tolMinus').value) || 0;
+  const noseRSel = document.getElementById('noseR').value;
+  const noseR = noseRSel === 'custom'
+    ? parseFloat(document.getElementById('noseRCustom').value)
+    : parseFloat(noseRSel);
+  const xExit = parseFloat(document.getElementById('xExit').value);
+
+  if (isNaN(diam) || isNaN(noseR) || isNaN(xExit)) { warn.style.display='none'; return; }
+
+  const radius = (diam + (tolP + tolM) / 2) / 2;
+  const R0 = radius + noseR;
+  const x0_limit = R0 * SIN17 + noseR * COS17;
+  const x3_limit = x0_limit - noseR;
+  const diam_limit = x3_limit * 2;
+  const safe = xExit >= diam_limit;
+
+  warn.style.display = 'block';
+  if (!safe) {
+    warn.style.background = 'rgba(255,80,80,0.12)';
+    warn.style.border = '1px solid rgba(255,80,80,0.5)';
+    warn.style.color = '#ff6b6b';
+    warn.innerHTML = `⚠ チップ側面干渉の危険あり<br>安全限界: Φ <strong>${diam_limit.toFixed(3)} mm</strong>　現在: Φ ${xExit.toFixed(3)} mm<br><span style="font-size:10px;opacity:0.8;">x0_limit = R0×sin17.5° + noseR×cos17.5° = ${x0_limit.toFixed(3)} mm</span>`;
+  } else {
+    warn.style.background = 'rgba(80,200,120,0.10)';
+    warn.style.border = '1px solid rgba(80,200,120,0.4)';
+    warn.style.color = '#50c878';
+    warn.innerHTML = `✓ 干渉なし（安全）　最小安全径: Φ <strong>${diam_limit.toFixed(3)} mm</strong>`;
+  }
+}
+
+['diam','tolPlus','tolMinus','noseR','xExit'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', updateInterferenceWarn);
+});
+document.getElementById('noseRCustom').addEventListener('input', updateInterferenceWarn);
+updateInterferenceWarn();
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', ['line','full','steps'][i] === tab);
+  });
+  document.getElementById('tabLine').classList.toggle('visible', tab === 'line');
+  document.getElementById('tabFull').classList.toggle('visible', tab === 'full');
+  document.getElementById('tabSteps').classList.toggle('visible', tab === 'steps');
+}
+
+// コピー
+function copyCode(id) {
+  const el = document.getElementById(id);
+  const lines = el.querySelectorAll('.gcode-code');
+  const text = Array.from(lines).map(l => l.textContent).join('\n');
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = el.querySelector('.copy-btn');
+    btn.textContent = 'COPIED!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 1500);
+  });
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.classList.add('visible');
+  document.getElementById('resultCard').classList.remove('visible');
+}
+
+function hideError() {
+  document.getElementById('errorMsg').classList.remove('visible');
+}
+
+function gLine(code, comment, highlight = false) {
+  return `<div class="gcode-line${highlight ? ' gcode-highlight' : ''}">
+    <span class="gcode-code">${code}</span>
+    <span class="gcode-comment">; ${comment}</span>
+  </div>`;
+}
+
+function calculate() {
+  hideError();
+
+  // 入力値取得
+  const diam = parseFloat(document.getElementById('diam').value);
+  const tolP = parseFloat(document.getElementById('tolPlus').value);
+  const tolM = parseFloat(document.getElementById('tolMinus').value);
+  const noseRSel = document.getElementById('noseR').value;
+  const noseR = noseRSel === 'custom'
+    ? parseFloat(document.getElementById('noseRCustom').value)
+    : parseFloat(noseRSel);
+  const zEntry = parseFloat(document.getElementById('zEntry').value);
+  const xExitDiam = parseFloat(document.getElementById('xExit').value);
+  const feed = parseFloat(document.getElementById('feed').value);
+  const originType = 'face_front';
+  const ballCenterZInput = document.getElementById('ballCenterZ').value;
+
+  // バリデーション
+  if (isNaN(diam) || diam <= 0) return showError('球の直径を正しく入力してください。');
+  if (isNaN(noseR) || noseR < 0) return showError('ノーズRを正しく入力してください。');
+  if (isNaN(zEntry) || zEntry < 0) return showError('入口Z延長量を正しく入力してください。');
+  if (isNaN(xExitDiam) || xExitDiam <= 0) return showError('出口X直径を正しく入力してください。');
+  if (isNaN(feed) || feed <= 0) return showError('送り速度を正しく入力してください。');
+
+  // 公差中心値・球半径
+  const centerDiam = diam + (tolP + tolM) / 2;
+  const radius = centerDiam / 2;
+  const R0 = radius + noseR;
+
+  // 端面から球中心までのZ距離（空欄なら球半径を自動使用）
+  const czAuto = (ballCenterZInput === '' || isNaN(parseFloat(ballCenterZInput)));
+  const ballCenterZ = czAuto ? radius : parseFloat(ballCenterZInput);
+
+  // 仮想刃先番号 → グリッド位置からX・Zシフトを計算
+  // グリッド配置:
+  //   2[0,0]  6[1,0]  1[2,0]   ← row0（上）
+  //   7[0,1]  0[1,1]  5[2,1]   ← row1（中）
+  //   3[0,2]  8[1,2]  4[2,2]   ← row2（下）= 3番基準
+  // Xシフト(直径) = 2×(row-2)×noseR  row2=0, row1=-noseR×2, row0=-noseR×4
+  // Zシフト       = col×noseR         col0=0, col1=+noseR,   col2=+noseR×2
+  const TIP_GRID = {'1':[2,0],'2':[0,0],'3':[0,2],'4':[2,2],'5':[2,1],'6':[1,0],'7':[0,1],'8':[1,2],'9':[1,1]};
+  const [tipCol, tipRow] = TIP_GRID[selectedTip] || [0, 2];
+  const xShift = 2 * (tipRow - 2) * noseR;  // X直径シフト（負=外径側）
+  const zShift = tipCol * noseR;             // Zシフト（正=端面側）
+
+  // ── X座標計算（全番号共通・3番ベース）──
+  let z_tri_base, x0_entry, x3_entry, x0_exit_disp, z0_exit_disp, zExitBase;
+
+  if (czAuto) {
+    // 球半径自動（apex式・3番ベース）
+    z_tri_base = radius - zEntry;
+    if (R0 < Math.abs(z_tri_base)) return showError('入口Z延長量が大きすぎます。');
+    x0_entry = Math.sqrt(R0*R0 - z_tri_base*z_tri_base);
+    x3_entry = x0_entry - noseR;
+    x0_exit_disp = xExitDiam/2 + noseR;
+    if (R0 < x0_exit_disp) return showError('出口X直径が大きすぎます（球の外側になります）。');
+    z0_exit_disp = Math.sqrt(R0*R0 - x0_exit_disp*x0_exit_disp);
+    zExitBase = -(z0_exit_disp + radius - 2*zEntry);
+  } else {
+    // centerZ入力あり（face_front式・3番ベース）
+    z_tri_base = ballCenterZ + zEntry + noseR;
+    if (R0 < Math.abs(z_tri_base)) return showError('入口のZ延長量または球中心Z距離が大きすぎます。');
+    x0_entry = Math.sqrt(R0*R0 - z_tri_base*z_tri_base);
+    x3_entry = x0_entry - noseR;
+    x0_exit_disp = xExitDiam/2 + noseR;
+    if (R0 < x0_exit_disp) return showError('出口X直径が大きすぎます（球の外側になります）。');
+    z0_exit_disp = Math.sqrt(R0*R0 - x0_exit_disp*x0_exit_disp);
+    zExitBase = -(z0_exit_disp + ballCenterZ + noseR);
+  }
+
+  if (x3_entry < 0) return showError('入口座標が計算できません（ノーズRが大きすぎます）。');
+
+  // ── 番号シフト適用 ──
+  const xEntryVal = -(x3_entry * 2) + xShift;   // X入口（外径側にシフト）
+  const zEntryVal = zEntry + zShift;              // Z入口
+  const xExitVal  = -xExitDiam + xShift;          // X出口
+  const zExitVal  = zExitBase + zShift;            // Z出口
+  const rVal      = R0;
+  const tipNote   = selectedTip + '番';
+  const originLabel = czAuto ? '球半径を自動使用' : '端面原点・球中心が手前側（Z＋）';
+
+  // 計算過程表示用
+  const entryZformula = czAuto
+    ? `球半径 − Z延長量 = ${radius.toFixed(3)} − ${zEntry}`
+    : `球中心Z + Z延長量 + ノーズR = ${ballCenterZ.toFixed(3)} + ${zEntry} + ${noseR}`;
+  const exitZformula = czAuto
+    ? `−(${z0_exit_disp.toFixed(3)} + ${radius.toFixed(3)} − 2×${zEntry})`
+    : `−(${z0_exit_disp.toFixed(3)} + ${ballCenterZ.toFixed(3)} + ${noseR})`;
+  const x3Label     = `${x0_entry.toFixed(3)} − ${noseR}（3番ベース）`;
+  const x0ExitLabel = `${(xExitDiam/2).toFixed(3)} + ${noseR}（3番ベース）`;
+
+
+  // 小数3位で丸め
+  const fmt = v => v.toFixed(3);
+
+  // 結果表示
+  document.getElementById('resXEntry').textContent = fmt(xEntryVal);
+  document.getElementById('resZEntry').textContent = '+' + fmt(zEntryVal);
+  document.getElementById('resXExit').textContent = fmt(xExitVal);
+  document.getElementById('resZExit').textContent = fmt(zExitVal);
+  document.getElementById('resR').textContent = 'R' + fmt(rVal);
+  document.getElementById('resRadius').textContent = fmt(radius) + ' mm';
+
+  document.getElementById('gcodeLineContent').innerHTML =
+    gLine(`G0 X${fmt(xEntryVal)} Z${fmt(zEntryVal)};`, '球面入口まで早送り') +
+    gLine(`G2 X${fmt(xExitVal)} Z${fmt(zExitVal)} R${fmt(rVal)} F${feed};`, '球面加工（円弧補間）', true);
+
+  // Gコード 全体
+  document.getElementById('gcodeFullContent').innerHTML = [
+    gLine('O1000;', 'プログラム番号'),
+    gLine('G54;', 'ワーク座標54番'),
+    gLine('G50 S3500;', '最高回転数3500'),
+    gLine('T0101;', '工具01番、オフセット01番'),
+    gLine('G96 S200 M3;', '周速一定200m/min 正転'),
+    gLine('M8;', 'クーラント ON'),
+    gLine('G0 X-20.0 Z5.0;', '待機位置へ早送り'),
+    gLine('G1 Z0 F0.3;', '端面まで移動'),
+    gLine('X0 F0.08;', '中心まで端面加工'),
+    gLine(`G0 X${fmt(xEntryVal)} Z${fmt(zEntryVal)};`, '球面入口まで早送り', true),
+    gLine(`G2 X${fmt(xExitVal)} Z${fmt(zExitVal)} R${fmt(rVal)} F${feed};`, '球面加工（円弧補間）', true),
+    gLine('G1 X-22.0;', 'X方向退避'),
+    gLine('M9;', 'クーラント OFF'),
+    gLine('G28 U0 W0;', '機械原点に戻る'),
+    gLine('M30;', 'プログラム終了・リワインド'),
+  ].join('');
+
+  // 計算過程
+  document.getElementById('tabSteps').innerHTML = `
+<div><span class="step-label">── 入力値 ──</span></div>
+<div>球の公称径           : <span class="step-val">sΦ${diam} (+${tolP} / ${tolM})</span></div>
+<div>計算用直径（公差中心）: <span class="step-val">${fmt(centerDiam)} mm</span></div>
+<div>球の半径 r           : <span class="step-val">${fmt(radius)} mm</span></div>
+<div>加工原点             : <span class="step-val">${originLabel}</span></div>
+<div>端面→球中心 Z距離    : <span class="step-val">${fmt(ballCenterZ)} mm${czAuto ? '（球半径を自動使用）' : ''}</span></div>
+<div>ノーズR              : <span class="step-val">${noseR} mm</span></div>
+<div>仮想刃先番号          : <span class="step-val">${tipNote}　Xシフト = 2×(${tipRow}−2)×${noseR} = <span style="color:var(--accent2);">${fmt(xShift)} mm</span>　Zシフト = ${tipCol}×${noseR} = <span style="color:var(--accent2);">${fmt(zShift)} mm</span></span></div>
+<div>&nbsp;</div>
+<div><span class="step-label">── G2のR（仮想刃先0番が描く円弧半径）──</span></div>
+<div>R₀ = 球半径 + ノーズR = ${fmt(radius)} + ${noseR} = <span class="step-val">${fmt(R0)} mm</span></div>
+<div>&nbsp;</div>
+<div><span class="step-label">── 入口計算（3番ベース・三平方の定理）──</span></div>
+<div>Z方向の辺 = ${entryZformula} = <span class="step-val">${fmt(z_tri_base)} mm</span></div>
+<div>X半径（0番） = √(${fmt(R0)}² − ${fmt(z_tri_base)}²) ≒ <span class="step-val">${fmt(x0_entry)} mm</span></div>
+<div>X半径（3番） = ${x3Label} = <span class="step-val">${fmt(x3_entry)} mm</span>（直径: ${fmt(x3_entry*2)} mm）</div>
+<div>入口X(3番ベース) = −${fmt(x3_entry*2)}、Xシフト${fmt(xShift)} → <span class="step-val">${fmt(xEntryVal)}</span></div>
+<div>入口Z = ${fmt(zEntry)} + Zシフト${fmt(zShift)} = <span class="step-val">+${fmt(zEntryVal)}</span></div>
+<div>&nbsp;</div>
+<div><span class="step-label">── 出口計算（3番ベース・三平方の定理）──</span></div>
+<div>X半径（3番） = ${fmt(xExitDiam)} ÷ 2 = <span class="step-val">${fmt(xExitDiam/2)} mm</span></div>
+<div>X半径（0番） = ${x0ExitLabel} = <span class="step-val">${fmt(x0_exit_disp)} mm</span></div>
+<div>Z方向の辺（0番） = √(${fmt(R0)}² − ${fmt(x0_exit_disp)}²) ≒ <span class="step-val">${fmt(z0_exit_disp)} mm</span></div>
+<div>出口Z(3番ベース) = ${exitZformula} = <span class="step-val">${fmt(zExitBase)} mm</span></div>
+<div>出口X(3番ベース) = −${fmt(xExitDiam)}、Xシフト${fmt(xShift)} → <span class="step-val">${fmt(xExitVal)}</span></div>
+<div>出口Z = ${fmt(zExitBase)} + Zシフト${fmt(zShift)} = <span class="step-val">${fmt(zExitVal)} mm</span></div>
+<div>&nbsp;</div>
+<div><span class="step-label">── 最終座標 ──</span></div>
+<div>入口 X = <span class="step-val">${fmt(xEntryVal)}</span>　Z = <span class="step-val">+${fmt(zEntryVal)}</span></div>
+<div>出口 X = <span class="step-val">${fmt(xExitVal)}</span>　Z = <span class="step-val">${fmt(zExitVal)}</span></div>
+<div>G2 R = <span class="step-val">${fmt(rVal)}</span></div>
+  `;
+
+  document.getElementById('resultCard').classList.add('visible');
+}
+
+// =============================================
+// 荒加工用 JS
+// =============================================
+
+// 荒加工用 仮想刃先グリッド
+let roughSelectedTip = '3';
+
+function buildRoughTipGrid() {
+  const grid = document.getElementById('roughTipGrid');
+  grid.innerHTML = '';
+  TIP_LAYOUT.forEach(cell => {
+    const div = document.createElement('div');
+    div.className = 'tip-cell' + (cell.center ? ' center' : '') + (cell.num === roughSelectedTip ? ' active' : '');
+    div.textContent = cell.num;
+    if (!cell.center) {
+      div.onclick = () => selectRoughTip(cell.num);
+    }
+    grid.appendChild(div);
+  });
+}
+
+function selectRoughTip(num) {
+  roughSelectedTip = num;
+  buildRoughTipGrid();
+  document.getElementById('roughTipName').textContent = num + '番';
+  document.getElementById('roughTipDesc').textContent = TIP_DESC[num] || '';
+}
+
+buildRoughTipGrid();
+
+// 荒加工球径のリアルタイム表示
+// 仕上げ側の入力が揃ったら荒の入力欄を有効化
+const ROUGH_INPUTS = ['roughAllowance','roughZShift','roughNoseR','roughNoseRCustom',
+  'roughZEntry','roughXExit','roughFeed'];
+
+function updateRoughEnabled() {
+  const diam = parseFloat(document.getElementById('diam').value);
+  const finishReady = !isNaN(diam) && diam > 0;
+
+  ROUGH_INPUTS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && id !== 'roughNoseRCustom') {
+      el.disabled = !finishReady;
+      el.style.opacity = finishReady ? '' : '0.4';
+    }
+  });
+
+  const btn = document.getElementById('roughCalcBtn');
+  btn.disabled = !finishReady;
+  btn.style.opacity = finishReady ? '1' : '0.4';
+  btn.style.cursor = finishReady ? 'pointer' : 'not-allowed';
+
+  if (finishReady) updateRoughDiam();
+}
+
+// 取り代から荒加工球径を自動計算
+function updateRoughDiam() {
+  const diam = parseFloat(document.getElementById('diam').value) || 0;
+  const tolP = parseFloat(document.getElementById('tolPlus').value) || 0;
+  const tolM = parseFloat(document.getElementById('tolMinus').value) || 0;
+  const allowance = parseFloat(document.getElementById('roughAllowance').value);
+  const centerDiam = diam + (tolP + tolM) / 2;
+  if (!isNaN(allowance) && allowance >= 0) {
+    const roughDiam = centerDiam + allowance * 2;
+    document.getElementById('roughDiamVal').textContent = roughDiam.toFixed(3) + ' mm';
+  } else {
+    document.getElementById('roughDiamVal').textContent = '— mm';
+  }
+}
+
+['diam','tolPlus','tolMinus','ballCenterZ'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', updateRoughEnabled);
+});
+document.getElementById('roughAllowance').addEventListener('input', updateRoughDiam);
+
+// Zシフト量から荒ballCenterZを表示
+function updateRoughBallCenterZVal() {
+  const ballCenterZInput = document.getElementById('ballCenterZ').value;
+  const shift = parseFloat(document.getElementById('roughZShift').value);
+  if (ballCenterZInput === '' || isNaN(parseFloat(ballCenterZInput)) || isNaN(shift)) {
+    document.getElementById('roughBallCenterZVal').textContent = '— mm';
+    return;
+  }
+  const finishBCZ = parseFloat(ballCenterZInput);
+  const roughBCZ = finishBCZ + shift;
+  document.getElementById('roughBallCenterZVal').textContent = roughBCZ.toFixed(3) + ' mm';
+}
+document.getElementById('roughZShift').addEventListener('input', updateRoughBallCenterZVal);
+document.getElementById('ballCenterZ').addEventListener('input', updateRoughBallCenterZVal);
+updateRoughEnabled();
+
+// カスタムノーズR（荒）
+document.getElementById('roughNoseR').addEventListener('change', function() {
+  document.getElementById('roughNoseRCustom').style.display = this.value === 'custom' ? 'block' : 'none';
+});
+
+// 荒加工タブ切替
+function switchRoughTab(tab) {
+  document.querySelectorAll('#roughTabLine, #roughTabFull').forEach(el => el.classList.remove('visible'));
+  document.getElementById(tab === 'line' ? 'roughTabLine' : 'roughTabFull').classList.add('visible');
+  document.querySelectorAll('#roughResultCard .tab').forEach((t, i) => {
+    t.classList.toggle('active', ['line','full'][i] === tab);
+  });
+}
+
+// エラー表示（荒）
+function showRoughError(msg) {
+  const el = document.getElementById('roughErrorMsg');
+  el.textContent = msg;
+  el.classList.add('visible');
+  document.getElementById('roughResultCard').classList.remove('visible');
+}
+function hideRoughError() {
+  document.getElementById('roughErrorMsg').classList.remove('visible');
+}
+
+// 荒加工計算（仕上げのcalculate()とは完全独立）
+function calculateRough() {
+  hideRoughError();
+
+  // 仕上げ側のballCenterZ（必須）
+  const finishBallCenterZInput = document.getElementById('ballCenterZ').value;
+  const finishDiam = parseFloat(document.getElementById('diam').value);
+  const tolP = parseFloat(document.getElementById('tolPlus').value) || 0;
+  const tolM = parseFloat(document.getElementById('tolMinus').value) || 0;
+  const finishCzAuto = (finishBallCenterZInput === '' || isNaN(parseFloat(finishBallCenterZInput)));
+  if (finishCzAuto) return showRoughError('仕上げ側の「端面から球中心までのZ距離」を入力してください（荒Gコードの基準となります）。');
+  const finishBallCenterZ = parseFloat(finishBallCenterZInput);
+
+  // 荒加工の入力値
+  const allowance    = parseFloat(document.getElementById('roughAllowance').value);
+  const roughZShiftVal   = parseFloat(document.getElementById('roughZShift').value);
+  const roughNoseRSel = document.getElementById('roughNoseR').value;
+  const noseR = roughNoseRSel === 'custom'
+    ? parseFloat(document.getElementById('roughNoseRCustom').value)
+    : parseFloat(roughNoseRSel);
+  const zEntry    = parseFloat(document.getElementById('roughZEntry').value);
+  const xExitDiam = parseFloat(document.getElementById('roughXExit').value);
+  const feed      = parseFloat(document.getElementById('roughFeed').value);
+
+  // バリデーション
+  if (isNaN(allowance) || allowance < 0)  return showRoughError('取り代を入力してください。');
+  if (isNaN(roughZShiftVal) || roughZShiftVal < 0) return showRoughError('Zシフト量を入力してください。');
+  if (isNaN(noseR) || noseR < 0)          return showRoughError('ノーズR（荒）を正しく入力してください。');
+  if (isNaN(zEntry) || zEntry < 0)        return showRoughError('入口Z延長量を正しく入力してください。');
+  if (isNaN(xExitDiam) || xExitDiam <= 0) return showRoughError('出口X直径を正しく入力してください。');
+  if (isNaN(feed) || feed <= 0)           return showRoughError('送り速度を正しく入力してください。');
+
+  // 荒ballCenterZ = 仕上げballCenterZ + Zシフト量
+  const ballCenterZ = finishBallCenterZ + roughZShiftVal;
+  const finishCenterDiam = parseFloat(document.getElementById('diam').value)
+    + (parseFloat(document.getElementById('tolPlus').value) || 0)
+    + (parseFloat(document.getElementById('tolMinus').value) || 0);
+  const roughDiam = finishCenterDiam + allowance * 2;
+
+  const radius = roughDiam / 2;
+  const R0 = radius + noseR;
+
+  // 仮想刃先番号シフト（荒）
+  const TIP_GRID = {'1':[2,0],'2':[0,0],'3':[0,2],'4':[2,2],'5':[2,1],'6':[1,0],'7':[0,1],'8':[1,2],'9':[1,1]};
+  const [tipCol, tipRow] = TIP_GRID[roughSelectedTip] || [0, 2];
+  const xShift = 2 * (tipRow - 2) * noseR;
+  const zShift = tipCol * noseR;
+
+  // 座標計算（face_front式）
+  const z_tri_base = ballCenterZ + zEntry + noseR;
+  if (R0 < Math.abs(z_tri_base)) return showRoughError('入口のZ延長量または球径が大きすぎます。');
+  const x0_entry = Math.sqrt(R0*R0 - z_tri_base*z_tri_base);
+  const x3_entry = x0_entry - noseR;
+  if (x3_entry < 0) return showRoughError('入口座標が計算できません（ノーズRが大きすぎます）。');
+  const x0_exit_disp = xExitDiam/2 + noseR;
+  if (R0 < x0_exit_disp) return showRoughError('出口X直径が大きすぎます。');
+  const z0_exit_disp = Math.sqrt(R0*R0 - x0_exit_disp*x0_exit_disp);
+  const zExitBase = -(z0_exit_disp + ballCenterZ + noseR);
+
+  // 番号シフト適用（座標表示は荒加工原点基準）
+  const xEntryVal = -(x3_entry * 2) + xShift;
+  const zEntryVal = zEntry + zShift;
+  const xExitVal  = -xExitDiam + xShift;
+  const zExitVal  = zExitBase + zShift;
+  const rVal      = R0;
+
+  // Gコード用Z座標は仕上げ加工原点基準
+  // オフセット = roughBallCenterZ - finishBallCenterZ
+  const zOffset = ballCenterZ - finishBallCenterZ;
+  const zEntryGcode = zEntryVal + zOffset;
+  const zExitGcode  = zExitVal  + zOffset;
+
+  const fmt = v => v.toFixed(3);
+
+  // 結果表示（Z座標は仕上げ加工原点基準）
+  document.getElementById('roughResXEntry').textContent  = fmt(xEntryVal);
+  document.getElementById('roughResZEntry').textContent  = '+' + fmt(zEntryGcode);
+  document.getElementById('roughResXExit').textContent   = fmt(xExitVal);
+  document.getElementById('roughResZExit').textContent   = fmt(zExitGcode);
+  document.getElementById('roughResR').textContent       = 'R' + fmt(rVal);
+  document.getElementById('roughResRadius').textContent  = fmt(roughDiam) + ' mm';
+
+  // Gコード 1行（仕上げ加工原点基準のZ）
+  document.getElementById('roughGcodeLineContent').innerHTML =
+    gLine(`G0 X${fmt(xEntryVal)} Z${fmt(zEntryGcode)};`, '球面入口まで早送り（荒・仕上げ原点基準）') +
+    gLine(`G2 X${fmt(xExitVal)} Z${fmt(zExitGcode)} R${fmt(rVal)} F${feed};`, '球面荒加工（円弧補間）', true);
+
+  // Gコード全体（仕上げ加工原点基準）
+  document.getElementById('roughGcodeFullContent').innerHTML = [
+    gLine('O2000;', 'プログラム番号（荒）'),
+    gLine('G54;', 'ワーク座標54番'),
+    gLine('G50 S3500 M8;', '最高回転数3500 クーラントON'),
+    gLine('T0101;', '工具番号（荒用チップに変更してください）'),
+    gLine('G96 S180 M3;', '周速一定180m/min 正転'),
+    gLine('G0 X-20.0 Z5.0;', '待機位置へ早送り'),
+    gLine(`G1 Z${fmt(zOffset)} F${feed};`, '荒端面（仕上げ加工原点基準）', true),
+    gLine('X1.6;', '中心まで端面加工', true),
+    gLine(`G0 X${fmt(xEntryVal)} Z${fmt(zEntryGcode)};`, '球面入口まで早送り（荒）', true),
+    gLine(`G2 X${fmt(xExitVal)} Z${fmt(zExitGcode)} R${fmt(rVal)} F${feed};`, '球面荒加工（円弧補間）', true),
+    gLine('G1 X-22.0;', 'X方向退避'),
+    gLine('M9;', 'クーラント OFF'),
+    gLine('G28 U0 W0;', '機械原点に戻る'),
+    gLine('M30;', 'プログラム終了・リワインド'),
+  ].join('');
+
+  document.getElementById('roughResultCard').classList.add('visible');
+}
+</script>
+</body>
+</html>
