@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>使用説明書 | KKT NC旋盤球面座標計算ツール</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #222536;
+    --border: #2e3347;
+    --accent: #4a9eff;
+    --accent2: #00e5a0;
+    --accent3: #ff6b6b;
+    --text: #e8eaf2;
+    --text-dim: #7b82a0;
+    --text-muted: #4a5070;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Noto Sans JP', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 24px 16px 64px;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(74,158,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(74,158,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+  .container { max-width: 820px; margin: 0 auto; position: relative; }
+
+  /* header */
+  .header {
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header-top { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; flex-wrap: wrap; }
+  .header-badge {
+    background: var(--accent); color: #000;
+    font-family: var(--mono); font-size: 10px; font-weight: 700;
+    padding: 3px 8px; border-radius: 3px; letter-spacing: 1px;
+  }
+  h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); }
+  .subtitle { font-size: 13px; color: var(--text-dim); font-family: var(--mono); margin-top: 4px; }
+  .back-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--surface2); color: var(--accent);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 14px; font-size: 13px; font-family: var(--mono);
+    text-decoration: none; margin-left: auto;
+    transition: background 0.15s;
+  }
+  .back-btn:hover { background: var(--border); }
+
+  /* card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 13px; font-weight: 700; color: var(--accent);
+    letter-spacing: 0.5px; margin-bottom: 14px;
+    padding-left: 10px; border-left: 3px solid var(--accent);
+  }
+
+  /* section */
+  .section { margin-bottom: 28px; }
+  .section-title {
+    font-size: 15px; font-weight: 700; color: var(--text);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::before {
+    content: '|';
+    color: var(--accent);
+    font-weight: 900;
+    font-size: 17px;
+  }
+  .section-desc {
+    font-size: 13px; color: var(--text-dim); line-height: 1.8;
+    margin-bottom: 14px;
+  }
+
+  /* step table */
+  .step-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+  .step-table td {
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    font-size: 13px;
+    vertical-align: middle;
+    line-height: 1.6;
+  }
+  .step-num {
+    background: var(--accent);
+    color: #000;
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 13px;
+    text-align: center;
+    width: 36px;
+    white-space: nowrap;
+  }
+  .step-label {
+    background: var(--surface2);
+    color: #c8d0ee;
+    font-weight: 700;
+    font-size: 12px;
+    width: 120px;
+    white-space: nowrap;
+  }
+  .step-desc { background: var(--bg); color: var(--text); }
+
+  /* feature table */
+  .feat-table { width: 100%; border-collapse: collapse; }
+  .feat-table th {
+    background: var(--surface2); color: var(--accent);
+    font-family: var(--mono); font-size: 12px; font-weight: 700;
+    padding: 8px 12px; border: 1px solid var(--border);
+    text-align: left;
+  }
+  .feat-table td {
+    padding: 9px 12px; border: 1px solid var(--border);
+    font-size: 13px; line-height: 1.6;
+    vertical-align: middle;
+  }
+  .feat-table tr:nth-child(odd) td { background: var(--bg); }
+  .feat-table tr:nth-child(even) td { background: var(--surface2); }
+  .feat-name { font-weight: 700; white-space: nowrap; }
+  .feat-name.finish { color: var(--accent); }
+  .feat-name.rough { color: var(--accent2); }
+
+  /* note */
+  .note {
+    background: rgba(255,107,107,0.08);
+    border: 1px solid rgba(255,107,107,0.3);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #ff9a9a;
+    margin-bottom: 12px;
+    line-height: 1.7;
+  }
+  .note::before { content: '⚠ '; font-weight: 700; }
+
+  .tip {
+    background: rgba(74,158,255,0.08);
+    border: 1px solid rgba(74,158,255,0.25);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #90c8ff;
+    margin-bottom: 12px;
+    line-height: 1.7;
+  }
+  .tip::before { content: '💡 '; }
+
+  /* error table */
+  .err-table { width: 100%; border-collapse: collapse; }
+  .err-table th {
+    background: var(--surface2); color: var(--accent);
+    font-family: var(--mono); font-size: 12px; font-weight: 700;
+    padding: 8px 12px; border: 1px solid var(--border);
+  }
+  .err-table td { padding: 9px 12px; border: 1px solid var(--border); font-size: 13px; line-height: 1.6; vertical-align: middle; }
+  .err-table tr:nth-child(odd) td { background: var(--bg); }
+  .err-table tr:nth-child(even) td { background: var(--surface2); }
+  .err-msg { font-family: var(--mono); font-size: 12px; color: var(--accent3); font-weight: 700; }
+
+  /* formula table */
+  .form-table { width: 100%; border-collapse: collapse; }
+  .form-table th {
+    background: var(--surface2); color: var(--accent);
+    font-family: var(--mono); font-size: 12px; font-weight: 700;
+    padding: 8px 12px; border: 1px solid var(--border);
+  }
+  .form-table td { padding: 9px 12px; border: 1px solid var(--border); font-size: 13px; line-height: 1.6; vertical-align: middle; }
+  .form-table tr:nth-child(odd) td { background: var(--bg); }
+  .form-table tr:nth-child(even) td { background: var(--surface2); }
+  .form-code { font-family: var(--mono); font-size: 12px; color: #c8d0ee; }
+  .form-val { font-family: var(--mono); font-size: 12px; color: var(--accent2); }
+
+  /* gcode tab */
+  .tab-table { width: 100%; border-collapse: collapse; }
+  .tab-table th {
+    background: var(--surface2); color: var(--accent);
+    font-family: var(--mono); font-size: 12px; font-weight: 700;
+    padding: 8px 12px; border: 1px solid var(--border);
+  }
+  .tab-table td { padding: 9px 12px; border: 1px solid var(--border); font-size: 13px; line-height: 1.6; vertical-align: middle; }
+  .tab-table tr:nth-child(odd) td { background: var(--bg); }
+  .tab-table tr:nth-child(even) td { background: var(--surface2); }
+  .tab-name { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--text); white-space: nowrap; }
+
+  /* bullet list */
+  .bullet-list { list-style: none; padding: 0; }
+  .bullet-list li {
+    padding: 5px 0 5px 20px;
+    position: relative;
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.7;
+    border-bottom: 1px solid var(--border);
+  }
+  .bullet-list li:last-child { border-bottom: none; }
+  .bullet-list li::before { content: '・'; position: absolute; left: 0; color: var(--accent); }
+
+  /* gcode output table */
+  .gcode-table { width: 100%; border-collapse: collapse; }
+  .gcode-table th {
+    background: var(--surface2); color: var(--accent);
+    font-family: var(--mono); font-size: 12px; font-weight: 700;
+    padding: 8px 12px; border: 1px solid var(--border);
+  }
+  .gcode-table td { padding: 9px 12px; border: 1px solid var(--border); font-size: 13px; line-height: 1.6; vertical-align: middle; }
+  .gcode-table tr:nth-child(odd) td { background: var(--bg); }
+  .gcode-table tr:nth-child(even) td { background: var(--surface2); }
+  .gcode-line { font-family: var(--mono); font-size: 12px; color: var(--accent2); font-weight: 700; }
+  .gcode-target { font-family: var(--mono); font-size: 12px; color: var(--text-dim); }
+
+  @media (max-width: 600px) {
+    .step-label { width: 90px; font-size: 11px; }
+    .feat-table td, .err-table td, .form-table td { font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ヘッダー -->
+  <div class="header">
+    <div class="header-top">
+      <div class="header-badge">MANUAL</div>
+      <h1>使用説明書</h1>
+      <a href="index.html" class="back-btn">← アプリに戻る</a>
+    </div>
+    <div class="subtitle">KKT NC旋盤 球面座標計算ツール</div>
+  </div>
+
+  <!-- 概要・目的 -->
+  <div class="section">
+    <div class="section-title">アプリの概要・目的</div>
+    <p class="section-desc">
+      NC旋盤でのボールスタッド球面加工に必要な座標計算とGコード生成を自動化するツールです。
+      仕上げ加工・荒削り加工の両方に対応し、仮想刃先番号・ノーズR・公差中心値を考慮した正確な座標を出力します。
+      なお本アプリは<strong style="color:var(--accent);">VNMG型チップ（35°菱形）</strong>を使用することを前提としています。
+    </p>
+    <table class="feat-table">
+      <tr><th style="width:140px;">機能</th><th>説明</th></tr>
+      <tr>
+        <td><span class="feat-name">端面直径チェック</span></td>
+        <td>球径とZ距離から端面の直径をリアルタイム計算。「↓計算に反映」で仕上げ欄へ自動入力</td>
+      </tr>
+      <tr>
+        <td><span class="feat-name finish">仕上げ球面計算</span></td>
+        <td>球径・公差・ノーズR・Z距離・仮想刃先番号から入口/出口座標とGコードを生成</td>
+      </tr>
+      <tr>
+        <td><span class="feat-name rough">荒球面計算</span></td>
+        <td>取り代・Zシフト量を入力。仕上げ加工原点基準でGコードを自動出力（端面加工行含む）</td>
+      </tr>
+      <tr>
+        <td><span class="feat-name">チップ干渉チェック</span></td>
+        <td>VNMG（35°チップ）の側面干渉を自動判定。安全限界直径を緑/赤でリアルタイム表示</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- 端面直径チェック -->
+  <div class="section">
+    <div class="section-title">端面直径チェックの手順</div>
+    <table class="step-table">
+      <tr>
+        <td class="step-num">①</td>
+        <td class="step-label">Z距離を入力</td>
+        <td class="step-desc">図面を用意し、球の中心から端面までの距離を「球中心から端面までのZ距離」欄に入力してください</td>
+      </tr>
+      <tr>
+        <td class="step-num">②</td>
+        <td class="step-label">端面直径を確認</td>
+        <td class="step-desc">計算された端面直径の数値で問題ないか確認してください</td>
+      </tr>
+      <tr>
+        <td class="step-num">③</td>
+        <td class="step-label">調整が必要な場合</td>
+        <td class="step-desc">端面の値が公差上限に近い場合は、端面までの距離を 0.1mm 伸ばして再確認してください</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- 仕上げ手順 -->
+  <div class="section">
+    <div class="section-title">仕上げ球面加工の入力手順</div>
+    <table class="step-table">
+      <tr><td class="step-num">①</td><td class="step-label">球の直径</td><td class="step-desc">公称径・上偏差・下偏差を入力 → 公差中心値が自動計算されます</td></tr>
+      <tr><td class="step-num">②</td><td class="step-label">Z距離</td><td class="step-desc">端面から球中心までのZ距離を入力（空欄にすると球半径を自動使用）</td></tr>
+      <tr><td class="step-num">③</td><td class="step-label">ノーズR</td><td class="step-desc">使用チップのノーズRを選択：R0.2 / R0.4 / R0.8 / R1.2 / カスタム</td></tr>
+      <tr><td class="step-num">④</td><td class="step-label">入口Z延長量</td><td class="step-desc">端面から外側への入口オフセット量を入力（例：0.2mm）</td></tr>
+      <tr><td class="step-num">⑤</td><td class="step-label">出口X直径</td><td class="step-desc">出口の仮想刃先3番位置の直径を入力。干渉チェックが緑になることを確認</td></tr>
+      <tr><td class="step-num">⑥</td><td class="step-label">送り速度F</td><td class="step-desc">切削送り速度を入力（例：0.08 mm/rev）</td></tr>
+      <tr><td class="step-num">⑦</td><td class="step-label">仮想刃先番号</td><td class="step-desc">3×3グリッドから選択。通常は3番（外径・球面加工の定番）</td></tr>
+      <tr><td class="step-num">⑧</td><td class="step-label">計算実行</td><td class="step-desc">「座標計算・Gコード生成」ボタンをクリック → 座標値とGコードが表示されます</td></tr>
+    </table>
+  </div>
+
+  <!-- 荒削り手順 -->
+  <div class="section">
+    <div class="section-title">荒球面加工の入力手順</div>
+    <div class="note">仕上げ側の球径を入力してから操作してください（入力後に荒欄が有効になります）。また仕上げ側の「端面から球中心までのZ距離」も必ず入力してください。</div>
+    <table class="step-table">
+      <tr><td class="step-num">①</td><td class="step-label">取り代（片側）</td><td class="step-desc">片側の取り代を入力 → 荒加工球径（公差中心値＋取り代×2）が自動表示されます</td></tr>
+      <tr><td class="step-num">②</td><td class="step-label">Zシフト量</td><td class="step-desc">仕上げ端面からZ方向のシフト量を入力 → 荒 ballCenterZが自動計算・表示されます</td></tr>
+      <tr><td class="step-num">③</td><td class="step-label">ノーズR（荒）</td><td class="step-desc">荒加工用チップのノーズRを選択（例：R1.2）</td></tr>
+      <tr><td class="step-num">④</td><td class="step-label">入口Z延長量</td><td class="step-desc">荒加工の入口Z延長量を入力（例：0.2mm）</td></tr>
+      <tr><td class="step-num">⑤</td><td class="step-label">出口X直径</td><td class="step-desc">荒加工の出口X直径を入力（例：18mm）</td></tr>
+      <tr><td class="step-num">⑥</td><td class="step-label">送り速度F</td><td class="step-desc">荒加工の切削送り速度を入力（例：0.25 mm/rev）</td></tr>
+      <tr><td class="step-num">⑦</td><td class="step-label">仮想刃先番号</td><td class="step-desc">荒加工用の仮想刃先番号を選択</td></tr>
+      <tr><td class="step-num">⑧</td><td class="step-label">計算実行</td><td class="step-desc">「荒加工 座標計算・Gコード生成」ボタンをクリック</td></tr>
+    </table>
+  </div>
+
+  <!-- Gコード -->
+  <div class="section">
+    <div class="section-title">Gコードの確認・コピー方法</div>
+    <div class="tip">各タブ右上の「COPY」ボタンでGコードをクリップボードにコピーできます。</div>
+    <table class="tab-table">
+      <tr><th style="width:140px;">タブ名</th><th>内容</th></tr>
+      <tr><td><span class="tab-name">G2の1行のみ</span></td><td>G0早送り（入口まで）＋G2円弧補間（球面加工）の2行を表示。通常はこちらをコピーして使用</td></tr>
+      <tr><td><span class="tab-name">プログラム全体</span></td><td>O番号・G54・G50・T番号・G96・M8・端面加工・球面加工・G28・M30を含む完全なGコードを表示</td></tr>
+      <tr><td><span class="tab-name">計算過程</span></td><td>三平方の定理による各計算ステップ（Z辺・X半径・シフト量など）を表示（仕上げのみ）</td></tr>
+    </table>
+
+    <div style="margin-top:16px;">
+      <table class="gcode-table">
+        <tr><th style="width:220px;">行</th><th style="width:80px;">対象</th><th>備考</th></tr>
+        <tr>
+          <td><span class="gcode-line">G1 Z[シフト量] F[送り]</span></td>
+          <td><span class="gcode-target">荒のみ</span></td>
+          <td>荒の端面加工行。仕上げ加工原点基準のZ座標</td>
+        </tr>
+        <tr>
+          <td><span class="gcode-line">G0 X[入口X] Z[入口Z]</span></td>
+          <td><span class="gcode-target">共通</span></td>
+          <td>球面入口まで早送り</td>
+        </tr>
+        <tr>
+          <td><span class="gcode-line">G2 X[出口X] Z[出口Z] R[R値] F[送り]</span></td>
+          <td><span class="gcode-target">共通</span></td>
+          <td>球面加工（円弧補間）。ハイライト表示</td>
+        </tr>
+      </table>
+    </div>
+    <div class="note" style="margin-top:12px;">荒加工のGコードZ座標はすべて仕上げ加工原点（Z0＝仕上げ端面）基準で出力されます。</div>
+  </div>
+
+  <!-- 注意事項・エラー -->
+  <div class="section">
+    <div class="section-title">注意事項・エラーへの対処</div>
+    <table class="err-table" style="margin-bottom:16px;">
+      <tr><th style="width:240px;">エラーメッセージ</th><th>対処法</th></tr>
+      <tr><td><span class="err-msg">入口Z延長量が大きすぎます</span></td><td>Z延長量を小さくするか、球径を確認してください</td></tr>
+      <tr><td><span class="err-msg">出口X直径が大きすぎます</span></td><td>出口X直径が球径より大きくなっています。値を小さくしてください</td></tr>
+      <tr><td><span class="err-msg">仕上げ側のZ距離を入力してください</span></td><td>荒計算の前に仕上げ側「端面から球中心までのZ距離」欄を入力してください</td></tr>
+      <tr><td><span class="err-msg" style="color:#ffaa44;">干渉チェック 赤表示</span></td><td>出口X直径が小さすぎます。表示されている「最小安全径」以上の値に変更してください</td></tr>
+    </table>
+    <ul class="bullet-list">
+      <li>荒加工の入力欄は仕上げ側の球径を入力するまでグレーアウトされ入力できません</li>
+      <li>計算結果は必ず実機プログラムと照合してから使用してください</li>
+      <li>アプリのデータはブラウザに保存されません。次回アクセス時は再入力が必要です</li>
+      <li>スマートフォン・タブレットからもアクセスできますが、PC環境での使用を推奨します</li>
+    </ul>
+  </div>
+
+  <!-- 計算式リファレンス -->
+  <div class="section">
+    <div class="section-title">計算式リファレンス（参考）</div>
+    <table class="form-table">
+      <tr><th style="width:160px;">項目</th><th>計算式</th><th style="width:180px;">例（B13・仕上げ）</th></tr>
+      <tr>
+        <td>R0（G2のR値）</td>
+        <td><span class="form-code">球半径 + ノーズR</span></td>
+        <td><span class="form-val">12.5 + 0.4 = 12.900</span></td>
+      </tr>
+      <tr>
+        <td>入口X（3番）</td>
+        <td><span class="form-code">−√(R0²−(ballCenterZ+zEntry+noseR)²) × 2</span></td>
+        <td><span class="form-val">−7.583</span></td>
+      </tr>
+      <tr>
+        <td>出口Z</td>
+        <td><span class="form-code">−(√(R0²−(xExit/2+noseR)²) + ballCenterZ + noseR)</span></td>
+        <td><span class="form-val">−20.835</span></td>
+      </tr>
+      <tr>
+        <td>干渉限界径</td>
+        <td><span class="form-code">(R0×sin17.5° + noseR×cos17.5° − noseR) × 2</span></td>
+        <td><span class="form-val">Φ8.623（R0.4）</span></td>
+      </tr>
+      <tr>
+        <td>荒加工球径</td>
+        <td><span class="form-code">仕上げ公差中心値 + 取り代 × 2</span></td>
+        <td><span class="form-val">25.0 + 0.3 = 25.300</span></td>
+      </tr>
+      <tr>
+        <td>荒 ballCenterZ</td>
+        <td><span class="form-code">仕上げ ballCenterZ + Zシフト量</span></td>
+        <td><span class="form-val">11.6 + 0.2 = 11.800</span></td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- フッター -->
+  <div style="text-align:center; padding-top:24px; border-top:1px solid var(--border); font-size:12px; color:var(--text-muted); font-family:var(--mono);">
+    <a href="index.html" style="color:var(--accent); text-decoration:none;">← アプリに戻る</a>
+    &nbsp;｜&nbsp;
+    https://kkt-tool.github.io/ball-calculator/
+    &nbsp;｜&nbsp;
+    KKT NC班
+  </div>
+
+</div>
+</body>
+</html>
