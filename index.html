@@ -15,8 +15,8 @@
     --accent2: #00e5a0;
     --accent3: #ff6b6b;
     --text: #e8eaf2;
-    --text-dim: #7b82a0;
-    --text-muted: #4a5070;
+    --text-dim: #a8b0cc;
+    --text-muted: #6e7a9a;
     --mono: 'JetBrains Mono', monospace;
     --sans: 'Noto Sans JP', sans-serif;
   }
@@ -285,6 +285,7 @@
     border: 1px solid var(--border);
     border-radius: 6px;
     padding: 10px 12px;
+    min-width: 0;
   }
   .coord-name {
     font-size: 11px;
@@ -297,11 +298,12 @@
     font-family: var(--mono);
     font-weight: 600;
     color: var(--accent2);
+    word-break: break-all;
   }
   .coord-val.r-val { color: var(--accent); }
 
   /* tabs */
-  .tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
   .tab {
     background: var(--surface2);
     border: 1px solid var(--border);
@@ -312,6 +314,7 @@
     padding: 6px 14px;
     cursor: pointer;
     transition: all 0.12s;
+    white-space: nowrap;
   }
   .tab:hover { border-color: var(--accent); color: var(--accent); }
   .tab.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
@@ -327,12 +330,28 @@
     line-height: 1.8;
     position: relative;
     display: none;
+    overflow-x: auto;
   }
   .gcode-block.visible { display: block; }
-  .gcode-line { display: flex; gap: 16px; }
+  .gcode-line { display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline; }
   .gcode-code { color: #e8eaf2; white-space: nowrap; }
-  .gcode-comment { color: var(--text-muted); font-size: 13px; }
+  .gcode-comment { color: var(--text-muted); font-size: 13px; white-space: nowrap; }
   .gcode-highlight .gcode-code { color: var(--accent2); font-weight: 600; }
+
+  /* スマホ対応 */
+  @media (max-width: 480px) {
+    body { padding: 12px 10px 48px; }
+    .coord-grid { grid-template-columns: 1fr 1fr; }
+    .coord-val { font-size: 16px; }
+    .coord-name { font-size: 10px; }
+    .gcode-block { font-size: 12px; padding: 12px 10px; }
+    .gcode-comment { font-size: 11px; }
+    .tab { font-size: 12px; padding: 6px 10px; }
+    .calc-btn { font-size: 14px; }
+    input[type=number], select { font-size: 14px; }
+    label { font-size: 12px; }
+    h1 { font-size: 18px; }
+  }
 
   .copy-btn {
     position: absolute;
@@ -395,6 +414,7 @@
     <div class="header-top">
       <span class="header-badge">NC LATHE</span>
       <h1>KKT NC旋盤球面加工 座標計算ツール</h1>
+      <span style="font-family:var(--mono); font-size:11px; color:var(--text-muted); background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:2px 8px; white-space:nowrap;">v1.0.0</span>
       <a href="manual.html" target="_blank" style="
         margin-left:auto; display:inline-flex; align-items:center; gap:6px;
         background:var(--surface2); color:var(--accent);
@@ -404,6 +424,7 @@
         transition:background 0.15s;">📄 使用説明書</a>
     </div>
     <div class="subtitle">ボールスタッド球面加工 / G2座標・Gコード自動生成</div>
+    <div style="font-family:var(--sans); font-size:13px; color:var(--text-dim); margin-top:6px;">座標を求めたい製品の図面を用意して数値を入力してください。</div>
   </div>
 
   <!-- 端面直径チェック -->
@@ -453,7 +474,7 @@
         <div class="tol-row">
           <div>
             <div class="tol-label">公称径</div>
-            <input type="number" id="diam" value="28" step="0.001" min="0">
+            <input type="number" id="diam" value="" step="0.001" min="0" placeholder="例: 28.000">
           </div>
           <div>
             <div class="tol-label">上偏差</div>
@@ -495,6 +516,16 @@
         <input type="number" id="noseRCustom" placeholder="例: 0.6" step="0.1" min="0" max="5"
           style="margin-top:6px; display:none;">
       </div>
+
+      <!-- 仮想刃先番号 -->
+      <div class="field">
+        <label>仮想刃先番号</label>
+        <div class="tip-grid" id="tipGrid"></div>
+        <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
+          <span class="center-val" id="tipName" style="font-size:14px;">3番</span>
+          <span style="font-family:var(--mono); font-size:13px; color:var(--text-dim);" id="tipDesc">外径加工・球面加工（定番）</span>
+        </div>
+      </div>
     </div>
 
     <!-- 右カラム: 加工条件 -->
@@ -519,21 +550,11 @@
         <label>切削送り速度 F <span>mm/rev</span></label>
         <input type="number" id="feed" value="0.08" step="0.01" min="0.01" max="1">
       </div>
-
-      <!-- 仮想刃先番号 -->
-      <div class="field">
-        <label>仮想刃先番号</label>
-        <div class="tip-grid" id="tipGrid"></div>
-        <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
-          <span class="center-val" id="tipName" style="font-size:14px;">3番</span>
-          <span style="font-family:var(--mono); font-size:13px; color:var(--text-dim);" id="tipDesc">外径加工・球面加工（定番）</span>
-        </div>
-      </div>
     </div>
   </div>
 
   <!-- 計算ボタン -->
-  <button class="calc-btn" onclick="calculate()">▶ 座標計算・Gコード生成</button>
+  <button class="calc-btn" onclick="calculate()">▶ 仕上加工 座標計算・Gコード生成</button>
 
   <!-- エラー -->
   <div class="error-msg" id="errorMsg" style="margin-top:12px;"></div>
@@ -579,7 +600,7 @@
     <div class="result-section">
       <div class="result-label">Gコード出力</div>
       <div class="tabs">
-        <div class="tab active" onclick="switchTab('line')">G2の1行のみ</div>
+        <div class="tab active" onclick="switchTab('line')">端面と球面加工部のみ</div>
         <div class="tab" onclick="switchTab('full')">プログラム全体</div>
         <div class="tab" onclick="switchTab('steps')">計算過程</div>
       </div>
@@ -614,6 +635,9 @@
     <div style="font-family:var(--mono); font-size:11px; color:var(--text-dim); margin-bottom:16px;">
       仕上げの加工原点・公差中心値を基準に、仕上げ代分大きい球径で荒加工座標を計算します
     </div>
+    <div id="roughDisabledMsg" style="font-family:var(--mono); font-size:12px; color:var(--accent3); margin-bottom:12px; display:none;">
+      ⚠ 仕上球面加工の「球の直径」を入力すると荒加工の入力欄が有効になります
+    </div>
 
     <div class="layout">
       <!-- 左: 荒加工パラメータ -->
@@ -632,7 +656,7 @@
 
         <!-- 端面シフト量（荒ballCenterZ = 仕上げballCenterZ + シフト量） -->
         <div class="field">
-          <label>加工原点からのZシフト量 <span>mm（仕上げ端面よりZ方向）</span></label>
+          <label>仕上端面から荒端面までの長さ <span>mm（端面取り代）</span></label>
           <input type="number" id="roughZShift" value="0.2" step="0.05" min="0" max="10" placeholder="例: 0.2" disabled>
           <div style="margin-top:6px; display:flex; align-items:center; gap:10px;">
             <div class="tol-label" style="margin-bottom:0;">→ 荒 ballCenterZ</div>
@@ -652,6 +676,16 @@
           </select>
           <input type="number" id="roughNoseRCustom" placeholder="例: 0.6" step="0.1" min="0" max="5"
             style="margin-top:6px; display:none;">
+        </div>
+
+        <!-- 仮想刃先番号（荒） -->
+        <div class="field">
+          <label>仮想刃先番号（荒）</label>
+          <div class="tip-grid" id="roughTipGrid"></div>
+          <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
+            <span class="center-val" id="roughTipName" style="font-size:14px;">3番</span>
+            <span style="font-family:var(--mono); font-size:11px; color:var(--text-dim);" id="roughTipDesc">外径加工・球面加工（定番）</span>
+          </div>
         </div>
       </div>
 
@@ -675,16 +709,6 @@
         <div class="field">
           <label>切削送り速度 F（荒） <span>mm/rev</span></label>
           <input type="number" id="roughFeed" value="0.15" step="0.01" min="0.01" max="1" placeholder="例: 0.15" disabled>
-        </div>
-
-        <!-- 仮想刃先番号（荒） -->
-        <div class="field">
-          <label>仮想刃先番号（荒）</label>
-          <div class="tip-grid" id="roughTipGrid"></div>
-          <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
-            <span class="center-val" id="roughTipName" style="font-size:14px;">3番</span>
-            <span style="font-family:var(--mono); font-size:11px; color:var(--text-dim);" id="roughTipDesc">外径加工・球面加工（定番）</span>
-          </div>
         </div>
       </div>
     </div>
@@ -735,7 +759,7 @@
       <div class="result-section">
         <div class="result-label">Gコード出力（荒）</div>
         <div class="tabs">
-          <div class="tab active" onclick="switchRoughTab('line')">G2の1行のみ</div>
+          <div class="tab active" onclick="switchRoughTab('line')">端面と球面加工部のみ</div>
           <div class="tab" onclick="switchRoughTab('full')">プログラム全体</div>
           <div class="tab" onclick="switchRoughTab('steps')">計算過程</div>
         </div>
@@ -853,6 +877,7 @@ function reflectChkValues() {
     updateCenterZ();
   }
   updateInterferenceWarn();
+  updateRoughEnabled();
 }
 
 // 端面直径チェック
@@ -1067,7 +1092,10 @@ function calculate() {
   document.getElementById('resRadius').textContent = fmt(radius) + ' mm';
 
   document.getElementById('gcodeLineContent').innerHTML =
-    gLine(`G0 X${fmt(xEntryVal)} Z${fmt(zEntryVal)};`, '球面入口まで早送り') +
+    gLine('G0 X-20.0 Z5.0;', '待機位置へ早送り') +
+    gLine('G1 Z0 F0.3;', '端面まで移動') +
+    gLine('X1.2 F0.08;', '中心まで端面加工') +
+    gLine(`G0 X${fmt(xEntryVal)} Z${fmt(zEntryVal)};`, '球面入口まで早送り', true) +
     gLine(`G2 X${fmt(xExitVal)} Z${fmt(zExitVal)} R${fmt(rVal)} F${feed};`, '球面加工（円弧補間）', true);
 
   // Gコード 全体
@@ -1079,8 +1107,8 @@ function calculate() {
     gLine('G96 S200 M3;', '周速一定200m/min 正転'),
     gLine('M8;', 'クーラント ON'),
     gLine('G0 X-20.0 Z5.0;', '待機位置へ早送り'),
-    gLine('G1 Z0 F0.3;', '端面まで移動'),
-    gLine('X0 F0.08;', '中心まで端面加工'),
+    gLine('G1 Z0 F0.3;', '端面まで移動', true),
+    gLine('X1.2 F0.08;', '中心まで端面加工', true),
     gLine(`G0 X${fmt(xEntryVal)} Z${fmt(zEntryVal)};`, '球面入口まで早送り', true),
     gLine(`G2 X${fmt(xExitVal)} Z${fmt(zExitVal)} R${fmt(rVal)} F${feed};`, '球面加工（円弧補間）', true),
     gLine('G1 X-22.0;', 'X方向退避'),
@@ -1165,6 +1193,10 @@ const ROUGH_INPUTS = ['roughAllowance','roughZShift','roughNoseR','roughNoseRCus
 function updateRoughEnabled() {
   const diam = parseFloat(document.getElementById('diam').value);
   const finishReady = !isNaN(diam) && diam > 0;
+
+  // グレーアウトメッセージの表示制御
+  const msg = document.getElementById('roughDisabledMsg');
+  if (msg) msg.style.display = finishReady ? 'none' : 'block';
 
   ROUGH_INPUTS.forEach(id => {
     const el = document.getElementById(id);
@@ -1330,7 +1362,10 @@ function calculateRough() {
 
   // Gコード 1行（仕上げ加工原点基準のZ）
   document.getElementById('roughGcodeLineContent').innerHTML =
-    gLine(`G0 X${fmt(xEntryVal)} Z${fmt(zEntryGcode)};`, '球面入口まで早送り（荒・仕上げ原点基準）') +
+    gLine('G0 X-20.0 Z5.0;', '待機位置へ早送り') +
+    gLine(`G1 Z${fmt(zOffset)} F${feed};`, '荒端面（仕上げ加工原点基準）') +
+    gLine('X2.5;', '中心まで端面加工') +
+    gLine(`G0 X${fmt(xEntryVal)} Z${fmt(zEntryGcode)};`, '球面入口まで早送り（荒・仕上げ原点基準）', true) +
     gLine(`G2 X${fmt(xExitVal)} Z${fmt(zExitGcode)} R${fmt(rVal)} F${feed};`, '球面荒加工（円弧補間）', true);
 
   // Gコード全体（仕上げ加工原点基準）
@@ -1342,7 +1377,7 @@ function calculateRough() {
     gLine('G96 S180 M3;', '周速一定180m/min 正転'),
     gLine('G0 X-20.0 Z5.0;', '待機位置へ早送り'),
     gLine(`G1 Z${fmt(zOffset)} F${feed};`, '荒端面（仕上げ加工原点基準）', true),
-    gLine('X1.6;', '中心まで端面加工', true),
+    gLine('X2.5;', '中心まで端面加工', true),
     gLine(`G0 X${fmt(xEntryVal)} Z${fmt(zEntryGcode)};`, '球面入口まで早送り（荒）', true),
     gLine(`G2 X${fmt(xExitVal)} Z${fmt(zExitGcode)} R${fmt(rVal)} F${feed};`, '球面荒加工（円弧補間）', true),
     gLine('G1 X-22.0;', 'X方向退避'),

@@ -248,6 +248,7 @@
     <div class="header-top">
       <div class="header-badge">MANUAL</div>
       <h1>使用説明書</h1>
+      <span style="font-family:var(--mono); font-size:11px; color:var(--text-muted); background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:2px 8px;">v1.0.0</span>
       <a href="index.html" class="back-btn">← アプリに戻る</a>
     </div>
     <div class="subtitle">KKT NC旋盤 球面座標計算ツール</div>
@@ -259,7 +260,8 @@
     <p class="section-desc">
       NC旋盤でのボールスタッド球面加工に必要な座標計算とGコード生成を自動化するツールです。
       仕上げ加工・荒削り加工の両方に対応し、仮想刃先番号・ノーズR・公差中心値を考慮した正確な座標を出力します。
-      なお本アプリは<strong style="color:var(--accent);">VNMG型チップ（35°菱形）</strong>を使用することを前提としています。
+      なお本アプリは<strong style="color:var(--accent);">VNMG型チップ（35°菱形）</strong>を使用することを前提としています。<br>
+      座標を求めたい製品の図面を用意して数値を入力してください。
     </p>
     <table class="feat-table">
       <tr><th style="width:140px;">機能</th><th>説明</th></tr>
@@ -273,7 +275,7 @@
       </tr>
       <tr>
         <td><span class="feat-name rough">荒球面計算</span></td>
-        <td>取り代・Zシフト量を入力。仕上げ加工原点基準でGコードを自動出力（端面加工行含む）</td>
+        <td>取り代・端面取り代を入力。仕上げ加工原点基準でGコードを自動出力（端面加工行含む）</td>
       </tr>
       <tr>
         <td><span class="feat-name">チップ干渉チェック</span></td>
@@ -288,16 +290,21 @@
     <table class="step-table">
       <tr>
         <td class="step-num">①</td>
-        <td class="step-label">Z距離を入力</td>
-        <td class="step-desc">図面を用意し、球の中心から端面までの距離を「球中心から端面までのZ距離」欄に入力してください</td>
+        <td class="step-label">球の直径を入力</td>
+        <td class="step-desc">図面を用意して球の直径を入力してください</td>
       </tr>
       <tr>
         <td class="step-num">②</td>
+        <td class="step-label">Z距離を入力</td>
+        <td class="step-desc">球の中心から端面までの距離を「球中心から端面までのZ距離」欄に入力してください</td>
+      </tr>
+      <tr>
+        <td class="step-num">③</td>
         <td class="step-label">端面直径を確認</td>
         <td class="step-desc">計算された端面直径の数値で問題ないか確認してください</td>
       </tr>
       <tr>
-        <td class="step-num">③</td>
+        <td class="step-num">④</td>
         <td class="step-label">調整が必要な場合</td>
         <td class="step-desc">端面の値が公差上限に近い場合は、端面までの距離を 0.1mm 伸ばして再確認してください</td>
       </tr>
@@ -308,14 +315,14 @@
   <div class="section">
     <div class="section-title">仕上げ球面加工の入力手順</div>
     <table class="step-table">
-      <tr><td class="step-num">①</td><td class="step-label">球の直径</td><td class="step-desc">公称径・上偏差・下偏差を入力 → 公差中心値が自動計算されます</td></tr>
+      <tr><td class="step-num">①</td><td class="step-label">球の直径</td><td class="step-desc">公称径・上偏差・下偏差を入力 → 公差中心値が自動計算されます（入力後に荒加工欄が有効になります）</td></tr>
       <tr><td class="step-num">②</td><td class="step-label">Z距離</td><td class="step-desc">端面から球中心までのZ距離を入力（空欄にすると球半径を自動使用）</td></tr>
       <tr><td class="step-num">③</td><td class="step-label">ノーズR</td><td class="step-desc">使用チップのノーズRを選択：R0.2 / R0.4 / R0.8 / R1.2 / カスタム</td></tr>
-      <tr><td class="step-num">④</td><td class="step-label">入口Z延長量</td><td class="step-desc">端面から外側への入口オフセット量を入力（例：0.2mm）</td></tr>
-      <tr><td class="step-num">⑤</td><td class="step-label">出口X直径</td><td class="step-desc">出口の仮想刃先3番位置の直径を入力。干渉チェックが緑になることを確認</td></tr>
-      <tr><td class="step-num">⑥</td><td class="step-label">送り速度F</td><td class="step-desc">切削送り速度を入力（例：0.08 mm/rev）</td></tr>
-      <tr><td class="step-num">⑦</td><td class="step-label">仮想刃先番号</td><td class="step-desc">3×3グリッドから選択。通常は3番（外径・球面加工の定番）</td></tr>
-      <tr><td class="step-num">⑧</td><td class="step-label">計算実行</td><td class="step-desc">「座標計算・Gコード生成」ボタンをクリック → 座標値とGコードが表示されます</td></tr>
+      <tr><td class="step-num">④</td><td class="step-label">仮想刃先番号</td><td class="step-desc">ノーズR選択欄の下の3×3グリッドから選択。通常は3番（外径・球面加工の定番）</td></tr>
+      <tr><td class="step-num">⑤</td><td class="step-label">入口Z延長量</td><td class="step-desc">端面から外側への入口オフセット量を入力（例：0.2mm）</td></tr>
+      <tr><td class="step-num">⑥</td><td class="step-label">出口X直径</td><td class="step-desc">出口の仮想刃先3番位置の直径を入力。干渉チェックが緑になることを確認</td></tr>
+      <tr><td class="step-num">⑦</td><td class="step-label">送り速度F</td><td class="step-desc">切削送り速度を入力（例：0.08 mm/rev）</td></tr>
+      <tr><td class="step-num">⑧</td><td class="step-label">計算実行</td><td class="step-desc">「仕上加工 座標計算・Gコード生成」ボタンをクリック → 座標値とGコードが表示されます</td></tr>
     </table>
   </div>
 
@@ -325,12 +332,12 @@
     <div class="note">仕上げ側の球径を入力してから操作してください（入力後に荒欄が有効になります）。また仕上げ側の「端面から球中心までのZ距離」も必ず入力してください。</div>
     <table class="step-table">
       <tr><td class="step-num">①</td><td class="step-label">取り代（片側）</td><td class="step-desc">片側の取り代を入力 → 荒加工球径（公差中心値＋取り代×2）が自動表示されます</td></tr>
-      <tr><td class="step-num">②</td><td class="step-label">Zシフト量</td><td class="step-desc">仕上げ端面からZ方向のシフト量を入力 → 荒 ballCenterZが自動計算・表示されます</td></tr>
+      <tr><td class="step-num">②</td><td class="step-label">端面取り代</td><td class="step-desc">仕上端面から荒端面までの長さを入力（例：0.2mm）→ 荒 ballCenterZが自動計算・表示されます</td></tr>
       <tr><td class="step-num">③</td><td class="step-label">ノーズR（荒）</td><td class="step-desc">荒加工用チップのノーズRを選択（例：R1.2）</td></tr>
-      <tr><td class="step-num">④</td><td class="step-label">入口Z延長量</td><td class="step-desc">荒加工の入口Z延長量を入力（例：0.2mm）</td></tr>
-      <tr><td class="step-num">⑤</td><td class="step-label">出口X直径</td><td class="step-desc">荒加工の出口X直径を入力（例：18mm）</td></tr>
-      <tr><td class="step-num">⑥</td><td class="step-label">送り速度F</td><td class="step-desc">荒加工の切削送り速度を入力（例：0.25 mm/rev）</td></tr>
-      <tr><td class="step-num">⑦</td><td class="step-label">仮想刃先番号</td><td class="step-desc">荒加工用の仮想刃先番号を選択</td></tr>
+      <tr><td class="step-num">④</td><td class="step-label">仮想刃先番号</td><td class="step-desc">ノーズR選択欄の下の3×3グリッドから選択</td></tr>
+      <tr><td class="step-num">⑤</td><td class="step-label">入口Z延長量</td><td class="step-desc">荒加工の入口Z延長量を入力（例：0.2mm）</td></tr>
+      <tr><td class="step-num">⑥</td><td class="step-label">出口X直径</td><td class="step-desc">荒加工の出口X直径を入力（例：18mm）</td></tr>
+      <tr><td class="step-num">⑦</td><td class="step-label">送り速度F</td><td class="step-desc">荒加工の切削送り速度を入力（例：0.15 mm/rev）</td></tr>
       <tr><td class="step-num">⑧</td><td class="step-label">計算実行</td><td class="step-desc">「荒加工 座標計算・Gコード生成」ボタンをクリック</td></tr>
     </table>
   </div>
@@ -340,29 +347,39 @@
     <div class="section-title">Gコードの確認・コピー方法</div>
     <div class="tip">各タブ右上の「COPY」ボタンでGコードをクリップボードにコピーできます。</div>
     <table class="tab-table">
-      <tr><th style="width:140px;">タブ名</th><th>内容</th></tr>
-      <tr><td><span class="tab-name">G2の1行のみ</span></td><td>G0早送り（入口まで）＋G2円弧補間（球面加工）の2行を表示。通常はこちらをコピーして使用</td></tr>
+      <tr><th style="width:180px;">タブ名</th><th>内容</th></tr>
+      <tr><td><span class="tab-name">端面と球面加工部のみ</span></td><td>待機位置・端面加工・球面入口・球面加工の5行を表示。通常はこちらをコピーして使用</td></tr>
       <tr><td><span class="tab-name">プログラム全体</span></td><td>O番号・G54・G50・T番号・G96・M8・端面加工・球面加工・G28・M30を含む完全なGコードを表示</td></tr>
-      <tr><td><span class="tab-name">計算過程</span></td><td>三平方の定理による各計算ステップ（Z辺・X半径・シフト量など）を表示（仕上げのみ）</td></tr>
+      <tr><td><span class="tab-name">計算過程</span></td><td>三平方の定理による各計算ステップ（Z辺・X半径・シフト量など）を表示（仕上げ・荒の両方）</td></tr>
     </table>
 
     <div style="margin-top:16px;">
       <table class="gcode-table">
         <tr><th style="width:220px;">行</th><th style="width:80px;">対象</th><th>備考</th></tr>
         <tr>
-          <td><span class="gcode-line">G1 Z[シフト量] F[送り]</span></td>
-          <td><span class="gcode-target">荒のみ</span></td>
-          <td>荒の端面加工行。仕上げ加工原点基準のZ座標</td>
+          <td><span class="gcode-line">G0 X-20.0 Z5.0</span></td>
+          <td><span class="gcode-target">共通</span></td>
+          <td>待機位置へ早送り</td>
         </tr>
         <tr>
-          <td><span class="gcode-line">G0 X[入口X] Z[入口Z]</span></td>
+          <td><span class="gcode-line">G1 Z[端面Z] F[送り]</span></td>
           <td><span class="gcode-target">共通</span></td>
-          <td>球面入口まで早送り</td>
+          <td>端面まで移動（荒は仕上げ原点基準のZ座標）</td>
         </tr>
         <tr>
-          <td><span class="gcode-line">G2 X[出口X] Z[出口Z] R[R値] F[送り]</span></td>
+          <td><span class="gcode-line">X1.2 / X2.5</span></td>
           <td><span class="gcode-target">共通</span></td>
-          <td>球面加工（円弧補間）。ハイライト表示</td>
+          <td>中心まで端面加工（仕上げ：X1.2、荒：X2.5）</td>
+        </tr>
+        <tr>
+          <td><span class="gcode-line" style="color:var(--accent2);">G0 X[入口X] Z[入口Z]</span></td>
+          <td><span class="gcode-target">共通</span></td>
+          <td>球面入口まで早送り　★緑色表示</td>
+        </tr>
+        <tr>
+          <td><span class="gcode-line" style="color:var(--accent2);">G2 X[出口X] Z[出口Z] R[R値] F[送り]</span></td>
+          <td><span class="gcode-target">共通</span></td>
+          <td>球面加工（円弧補間）　★緑色表示</td>
         </tr>
       </table>
     </div>
@@ -381,6 +398,7 @@
     </table>
     <ul class="bullet-list">
       <li>荒加工の入力欄は仕上げ側の球径を入力するまでグレーアウトされ入力できません</li>
+      <li>端面チェックの「↓計算に反映」ボタンで球径を転記した場合も荒加工欄が有効になります</li>
       <li>計算結果は必ず実機プログラムと照合してから使用してください</li>
       <li>アプリのデータはブラウザに保存されません。次回アクセス時は再入力が必要です</li>
       <li>スマートフォン・タブレットからもアクセスできますが、PC環境での使用を推奨します</li>
@@ -419,7 +437,7 @@
       </tr>
       <tr>
         <td>荒 ballCenterZ</td>
-        <td><span class="form-code">仕上げ ballCenterZ + Zシフト量</span></td>
+        <td><span class="form-code">仕上げ ballCenterZ + 端面取り代</span></td>
         <td><span class="form-val">11.6 + 0.2 = 11.800</span></td>
       </tr>
     </table>
